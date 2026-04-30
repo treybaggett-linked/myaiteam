@@ -572,16 +572,8 @@
 
     .step-card.complete {
       border-left-color: var(--color-success);
-    }
-
-    /* Chapter opacity for scrollytelling */
-    .chapter {
-      opacity: 0.45;
-      transition: opacity 0.35s ease;
-    }
-
-    .chapter.active {
-      opacity: 1;
+      opacity: 0.55;
+      transition: opacity 0.25s ease;
     }
 
     /* Eyebrow */
@@ -1082,7 +1074,7 @@
       .hero-mesh { animation: none; }
       .scroll-hint { animation: none; }
       .fade-in { opacity: 1; transform: none; transition: none; }
-      .chapter { opacity: 1 !important; transition: none !important; }
+      .step-card.complete { transition: none; }
       .completion-banner { transition: none; }
       .progress-bar-fill { transition: none; }
       .bar-pulsing { animation: none; }
@@ -1112,10 +1104,6 @@
 
       .phase-steps {
         padding: 2rem 0;
-      }
-
-      .chapter {
-        opacity: 1 !important;
       }
     }
 
