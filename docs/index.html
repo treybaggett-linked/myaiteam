@@ -1481,8 +1481,9 @@
                 <span class="prompt-text" id="prompt-claude-auth">claude</span>
                 <button class="copy-btn" onclick="copyPrompt('prompt-claude-auth', this)" aria-label="Copy command">Copy</button>
               </div>
-              <p>Claude Code will open a browser tab pointing to <strong>claude.ai</strong> for you to log in. This web visit is unavoidable — it's the authentication handshake. Log in with your Claude account, approve the connection, and the terminal will confirm you're authenticated. You only do this once.</p>
-              <p>Once the terminal shows you're logged in, you're done here. Move to Step 2.</p>
+              <p>Claude Code will show you a numbered list of login options. <strong>Pick the first option</strong> — that's the browser-based login through claude.ai, and it's the easiest path. Your browser will open automatically.</p>
+              <p>Log in with your Claude account, approve the connection, and switch back to the terminal. When you see a message confirming you're logged in, authentication is complete. You only do this once.</p>
+              <p><strong>Now close this terminal window entirely.</strong> Don't navigate anywhere — just close it. The next step opens a fresh terminal already pointed at the right folder, which is the cleanest way to continue.</p>
             </div>
           </div>
 
@@ -1541,7 +1542,7 @@
           <!-- TERMINAL path -->
           <div class="path-terminal">
             <div class="step-body">
-              <p>Open Windows Terminal or PowerShell (same as Step 1). You need to navigate it into your <strong>MyAITeam</strong> folder — pick whichever of these three ways feels comfortable. They all land in the same place.</p>
+              <p>You closed the terminal at the end of Step 1e — good. Now open a fresh one and navigate it into your <strong>MyAITeam</strong> folder. Pick whichever of these three methods feels comfortable. They all land in the same place.</p>
 
               <!-- METHOD A — Right-click Open in Terminal -->
               <div class="nav-method">
@@ -1595,7 +1596,7 @@
                 <button class="copy-btn" onclick="copyPrompt('prompt-claude-launch', this)" aria-label="Copy claude launch command">Copy</button>
               </div>
               <div class="callout-windows">
-                <strong>Trust prompt:</strong> Claude Code will ask "Do you trust the files in this folder?" Press <strong>Enter</strong> or type <strong>yes</strong>. This tells Claude Code it's safe to read and edit files here. The kit pre-approves common operations so you won't be interrupted by permission pop-ups during onboarding.
+                <strong>Trust prompt — you must say yes.</strong> The first time you run <code class="inline-code">claude</code> inside a new folder, Claude Code asks: <em>"Do you trust the files in this folder?"</em> Type <strong>yes</strong> and press Enter (or press Enter alone if yes is already the default). This is a one-time confirmation for this folder — it tells Claude Code it's safe to read and write files here. Without it, the team can't create files, the database can't be set up, and onboarding won't work. It is not a security risk — you're simply telling Claude Code to work inside the folder you just opened.
               </div>
               <p>After confirming trust, you'll see a chat prompt appear in the terminal. You're now inside your kit. Claude is ready and waiting.</p>
             </div>
