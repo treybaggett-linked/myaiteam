@@ -1439,12 +1439,22 @@
             <div class="step-body">
               <p><strong>Step 1a — Open a terminal.</strong> On Windows, use <strong>Windows Terminal</strong> or <strong>PowerShell</strong>. Both are built into Windows 10 and 11. To open: press <strong>Win + X</strong>, then click <strong>Terminal</strong> or <strong>Windows PowerShell</strong>. Either works for everything that follows. (If you see both listed, pick Windows Terminal — it's the newer one.)</p>
 
-              <p><strong>Step 1b — Check whether Node.js is already installed.</strong> Type this and press Enter:</p>
+              <p><strong>Step 1b — Allow npm scripts to run (Windows only).</strong> Windows blocks PowerShell scripts by default for security. npm runs as a script, so we need to allow it once before anything else will work. Paste this into your terminal and press Enter:</p>
+              <div class="prompt-block">
+                <span class="prompt-text" id="prompt-exec-policy">Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned</span>
+                <button class="copy-btn" onclick="copyPrompt('prompt-exec-policy', this)" aria-label="Copy command">Copy</button>
+              </div>
+              <p>When it asks "Are you sure?", type <strong>Y</strong> and press Enter. This change only affects your own user account — not the whole system, and not other users. You only need to do this once, ever.</p>
+              <div class="callout-windows">
+                <strong>On Mac?</strong> Skip this step entirely — macOS doesn't have the PowerShell execution policy restriction. Jump straight to Step 1c.
+              </div>
+
+              <p><strong>Step 1c — Check whether Node.js is already installed.</strong> Type this and press Enter:</p>
               <div class="prompt-block">
                 <span class="prompt-text" id="prompt-node-check">node --version</span>
                 <button class="copy-btn" onclick="copyPrompt('prompt-node-check', this)" aria-label="Copy command">Copy</button>
               </div>
-              <p><strong>If you see something like <code class="inline-code">v20.18.0</code></strong> (any version v18 or higher), you're good — skip to Step 1c below.</p>
+              <p><strong>If you see something like <code class="inline-code">v20.18.0</code></strong> (any version v18 or higher), you're good — skip to Step 1d below.</p>
               <p><strong>If you see an error</strong> ("not recognized" or "command not found"), Node isn't installed yet. Run this command to install it:</p>
               <div class="prompt-block">
                 <span class="prompt-text" id="prompt-node-install">winget install OpenJS.NodeJS.LTS</span>
@@ -1458,14 +1468,15 @@
                 <strong>If winget isn't available</strong> (older Windows 10 builds before 2019), download Node directly from <a href="https://nodejs.org" target="_blank" rel="noopener noreferrer">nodejs.org</a> — but this should be rare. Most Windows 10 machines updated in the last few years have winget.
               </div>
 
-              <p><strong>Step 1c — Install Claude Code.</strong> With Node confirmed, run:</p>
+              <p><strong>Step 1d — Install Claude Code.</strong> With Node confirmed, run:</p>
               <div class="prompt-block">
                 <span class="prompt-text" id="prompt-claude-install">npm install -g @anthropic-ai/claude-code</span>
                 <button class="copy-btn" onclick="copyPrompt('prompt-claude-install', this)" aria-label="Copy command">Copy</button>
               </div>
               <p>This downloads and installs the <code class="inline-code">claude</code> command globally. It takes about a minute.</p>
+              <p style="font-size:0.8125rem; color:var(--color-body-muted);">Already seeing a "cannot be loaded because running scripts is disabled" error? Run the command in Step 1b first, then come back here.</p>
 
-              <p><strong>Step 1d — Authenticate.</strong> After install, run:</p>
+              <p><strong>Step 1e — Authenticate.</strong> After install, run:</p>
               <div class="prompt-block">
                 <span class="prompt-text" id="prompt-claude-auth">claude</span>
                 <button class="copy-btn" onclick="copyPrompt('prompt-claude-auth', this)" aria-label="Copy command">Copy</button>
