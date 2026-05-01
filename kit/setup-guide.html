@@ -1195,6 +1195,49 @@
       outline: 2px solid var(--color-primary);
       outline-offset: 3px;
     }
+
+    /* ── Hero kickoff banner — step-zero framing ── */
+    .hero-kickoff {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      background: rgba(96,198,232,0.08);
+      border: 1px solid rgba(96,198,232,0.25);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 2rem;
+      max-width: 52ch;
+    }
+
+    .hero-kickoff-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--color-cyan-vivid);
+      background: rgba(96,198,232,0.15);
+      border-radius: 9999px;
+      padding: 3px 10px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .hero-kickoff-text {
+      font-family: var(--font-body);
+      font-size: 0.9375rem;
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--color-dark-warm);
+    }
+
+    .hero-kickoff-text strong {
+      font-weight: 600;
+      color: var(--color-cyan-vivid);
+    }
   </style>
 </head>
 <body>
@@ -1211,12 +1254,13 @@
     >
     <h1>Your AI team, ready in under an hour.</h1>
     <p class="hero-subhead">Getting Claude Code running on Windows — step by step. Most people finish the full setup in under an hour.</p>
+    <div class="hero-kickoff" role="note">
+      <span class="hero-kickoff-badge">Start here</span>
+      <p class="hero-kickoff-text"><strong>Download the kit first</strong> — every step below assumes it&rsquo;s already on your machine.</p>
+    </div>
     <div class="hero-cta-row">
-      <a href="#phase-01" class="btn-cta">
-        Get Started <span class="btn-arrow" aria-hidden="true">&rarr;</span>
-      </a>
-      <a href="https://github.com/treybaggett-linked/myaiteam/releases/latest/download/MyAITeam.zip" class="btn-ghost" download>
-        Download Kit
+      <a href="https://github.com/treybaggett-linked/myaiteam/releases/latest/download/MyAITeam.zip" class="btn-cta" download>
+        Download Kit <span class="btn-arrow" aria-hidden="true">&#8595;</span>
       </a>
     </div>
   </div>
@@ -1239,7 +1283,7 @@
 <!-- ══ PATH SELECTOR ════════════════════════════════════════ -->
 <div class="path-selector-section" id="path-selector">
   <div class="path-selector-inner">
-    <p class="path-selector-question">Before we start: how are you planning to run Claude Code?</p>
+    <p class="path-selector-question">Step 1 &mdash; choose how you&rsquo;ll run Claude Code:</p>
     <p class="path-selector-sub">Pick your path and the guide will show you the right instructions for your setup. You can switch later if you change your mind.</p>
     <div class="path-cards">
 
