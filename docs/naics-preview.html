@@ -817,7 +817,32 @@
 <!-- hidden data wrapper — shown after gate unlock -->
 <div id="client-data-wrapper" style="display:none;">
 
-<!-- ========== 6. CLIENT DATA TABLE ========== -->
+<!-- ========== 6. REVENUE BY INDUSTRY SUMMARY ========== -->
+<div class="section" id="rev-industry-section" style="margin-top:16px;">
+  <div class="section-header">
+    <h2>Revenue by Industry</h2>
+    <div class="subtitle" id="rit-subtitle">All 2,303 clients grouped by industry — sum of Most Recent Revenue where available. Tap column header to sort.</div>
+  </div>
+  <div id="rev-chart-wrap" style="padding:14px 16px 2px;"></div>
+  <div style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
+    <table id="rev-industry-table" style="width:100%; border-collapse:collapse; font-size:12px; min-width:340px;">
+      <thead>
+        <tr id="rit-header">
+          <th data-col="industry" style="padding:8px 10px; text-align:left; background:#222636; border-bottom:1px solid #2e3248; color:#8b90a8; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; user-select:none;">Industry <span id="rit-sort-industry" style="color:#7b8cde;font-size:10px;"></span></th>
+          <th data-col="clients" style="padding:8px 10px; text-align:right; background:#222636; border-bottom:1px solid #2e3248; color:#8b90a8; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; user-select:none; white-space:nowrap;"># Clients <span id="rit-sort-clients" style="color:#7b8cde;font-size:10px;"></span></th>
+          <th data-col="total_rev" style="padding:8px 10px; text-align:right; background:#222636; border-bottom:1px solid #2e3248; color:#8b90a8; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; user-select:none; white-space:nowrap;">Total Revenue <span id="rit-sort-total_rev" style="color:#7b8cde;font-size:10px;">&#9660;</span></th>
+          <th data-col="avg_rev" style="padding:8px 10px; text-align:right; background:#222636; border-bottom:1px solid #2e3248; color:#8b90a8; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; user-select:none; white-space:nowrap;">Avg / Client* <span id="rit-sort-avg_rev" style="color:#7b8cde;font-size:10px;"></span></th>
+        </tr>
+      </thead>
+      <tbody id="rit-body"></tbody>
+    </table>
+  </div>
+  <div style="padding:8px 16px 10px; font-size:11px; color:#8b90a8; border-top:1px solid #2e3248;">
+    *Avg / Client uses only clients with revenue data. Grand total revenue across all industries: <span id="rit-grand-total" style="color:#4ade80; font-weight:700;"></span>
+  </div>
+</div>
+
+<!-- ========== 7. CLIENT DATA TABLE ========== -->
 <div class="section" style="margin-top:16px;">
   <div class="section-header">
     <h2>Client Data Table</h2>
@@ -867,17 +892,19 @@
 <div class="section">
   <div class="section-header">
     <h2>Pivot</h2>
-    <div class="subtitle">Drag fields to rows/columns. Aggregates on revenue, count. Cramped on phone — best on desktop.</div>
+    <div class="subtitle">Desktop only — drag fields to rows/columns. Does not work on mobile (touch drag not supported by PivotTable.js). Use the Revenue by Industry table above on phone.</div>
   </div>
   <div id="pivot-container" style="padding:12px; overflow-x:auto; -webkit-overflow-scrolling:touch;">
-    <div style="font-size:12px; color:#8b90a8; padding:8px 0;">Loading pivot...</div>
+    <div id="pivot-status" style="font-size:12px; color:#8b90a8; padding:8px 0;">Pivot table loads on desktop after scripts finish. On mobile, use the Revenue by Industry summary above.</div>
   </div>
 </div>
 
 </div><!-- end #client-data-wrapper -->
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+  onerror="document.getElementById('pivot-status').innerHTML='<span style=\'color:#f87171\'>Pivot unavailable: jQuery CDN failed to load.</span>';"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.js"
+  onerror="document.getElementById('pivot-status').innerHTML='<span style=\'color:#f87171\'>Pivot unavailable: PivotTable.js CDN failed to load.</span>';"></script>
 
 <script>
 // ---- DATA ----
@@ -981,6 +1008,143 @@ window.addEventListener('DOMContentLoaded', function() {
 // ---- DATA TABLE ----
 // Enrich each row with derived industry field
 const ENRICHED = ROWS.map(r => ({...r, industry: naicsLabel(r.naics)}));
+
+// ---- REVENUE BY INDUSTRY SUMMARY ----
+(function buildRevIndustrySummary() {
+  // Aggregate
+  const map = {};
+  ENRICHED.forEach(r => {
+    const ind = r.industry || 'Unknown';
+    if (!map[ind]) map[ind] = { industry: ind, clients: 0, total_rev: 0, rev_clients: 0 };
+    map[ind].clients++;
+    if (r.rev !== null && r.rev > 0) {
+      map[ind].total_rev += r.rev;
+      map[ind].rev_clients++;
+    }
+  });
+
+  // Convert to array with avg
+  let rows = Object.values(map).map(d => ({
+    ...d,
+    avg_rev: d.rev_clients > 0 ? d.total_rev / d.rev_clients : 0
+  }));
+
+  // Grand total
+  const grandTotal = rows.reduce((s, r) => s + r.total_rev, 0);
+  const el = document.getElementById('rit-grand-total');
+  if (el) el.textContent = '$' + grandTotal.toLocaleString('en-US', {maximumFractionDigits:0});
+
+  // Default sort: total_rev desc
+  let sortCol = 'total_rev';
+  let sortDir = -1; // -1 = desc
+
+  function fmt(n) {
+    if (!n || n === 0) return '—';
+    return '$' + Math.round(n).toLocaleString('en-US');
+  }
+
+  function renderTable() {
+    const sorted = [...rows].sort((a, b) => {
+      const av = a[sortCol];
+      const bv = b[sortCol];
+      if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+      return sortDir * (av - bv);
+    });
+
+    const tbody = document.getElementById('rit-body');
+    if (!tbody) return;
+    tbody.innerHTML = sorted.map((r, i) => {
+      const stripe = i % 2 === 1 ? 'background:#1a1d27;' : '';
+      const revFmt = fmt(r.total_rev);
+      const avgFmt = fmt(r.avg_rev);
+      return `<tr style="${stripe}">
+        <td style="padding:7px 10px; border-bottom:1px solid #2e3248; color:#e2e4ef; font-size:12px;">${r.industry}</td>
+        <td style="padding:7px 10px; border-bottom:1px solid #2e3248; color:#e2e4ef; font-size:12px; text-align:right;">${r.clients.toLocaleString()}</td>
+        <td style="padding:7px 10px; border-bottom:1px solid #2e3248; color:${r.total_rev > 0 ? '#4ade80' : '#8b90a8'}; font-size:12px; text-align:right; font-weight:${r.total_rev > 0 ? '600' : '400'};">${revFmt}</td>
+        <td style="padding:7px 10px; border-bottom:1px solid #2e3248; color:${r.avg_rev > 0 ? '#7b8cde' : '#8b90a8'}; font-size:12px; text-align:right;">${avgFmt}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function updateSortIndicators() {
+    ['industry','clients','total_rev','avg_rev'].forEach(col => {
+      const el = document.getElementById('rit-sort-' + col);
+      if (!el) return;
+      if (col === sortCol) {
+        el.textContent = sortDir === -1 ? '▼' : '▲';
+      } else {
+        el.textContent = '';
+      }
+    });
+  }
+
+  // Wire header clicks
+  const headerRow = document.getElementById('rit-header');
+  if (headerRow) {
+    headerRow.querySelectorAll('th[data-col]').forEach(th => {
+      th.addEventListener('click', function() {
+        const col = this.getAttribute('data-col');
+        if (col === sortCol) {
+          sortDir *= -1;
+        } else {
+          sortCol = col;
+          sortDir = col === 'industry' ? 1 : -1;
+        }
+        updateSortIndicators();
+        renderTable();
+      });
+    });
+  }
+
+  // Build top-10 bar chart (inline SVG)
+  function buildChart() {
+    const top10 = [...rows]
+      .filter(r => r.total_rev > 0)
+      .sort((a, b) => b.total_rev - a.total_rev)
+      .slice(0, 10);
+    if (top10.length === 0) return;
+
+    const maxRev = top10[0].total_rev;
+    const BAR_H = 18;
+    const GAP = 6;
+    const LABEL_W = 180;
+    const BAR_MAX_W = 160;
+    const VAL_W = 80;
+    const CHART_W = LABEL_W + BAR_MAX_W + VAL_W + 16;
+    const CHART_H = top10.length * (BAR_H + GAP) + 4;
+    const COLORS = ['#7b8cde','#2dd4bf','#a78bfa','#fbbf24','#4ade80','#fb923c','#f87171','#38bdf8','#c084fc','#f472b6'];
+
+    let svgRows = top10.map((r, i) => {
+      const y = i * (BAR_H + GAP);
+      const barW = Math.round((r.total_rev / maxRev) * BAR_MAX_W);
+      const label = r.industry.length > 26 ? r.industry.substring(0,25) + '…' : r.industry;
+      const valTxt = '$' + (r.total_rev >= 1e9
+        ? (r.total_rev/1e9).toFixed(1)+'B'
+        : r.total_rev >= 1e6
+          ? (r.total_rev/1e6).toFixed(0)+'M'
+          : (r.total_rev/1e3).toFixed(0)+'K');
+      const color = COLORS[i % COLORS.length];
+      return `<g transform="translate(0,${y})">
+        <text x="${LABEL_W - 6}" y="${BAR_H * 0.72}" text-anchor="end" fill="#8b90a8" font-size="10" font-family="system-ui,sans-serif">${label}</text>
+        <rect x="${LABEL_W}" y="2" width="${barW}" height="${BAR_H - 4}" fill="${color}" rx="2"/>
+        <text x="${LABEL_W + barW + 5}" y="${BAR_H * 0.72}" fill="#e2e4ef" font-size="10" font-family="system-ui,sans-serif" font-weight="600">${valTxt}</text>
+      </g>`;
+    }).join('');
+
+    const chartEl = document.getElementById('rev-chart-wrap');
+    if (chartEl) {
+      chartEl.innerHTML = `<div style="font-size:11px;color:#8b90a8;margin-bottom:6px;letter-spacing:0.05em;text-transform:uppercase;font-weight:700;">Top 10 by Revenue</div>
+      <div style="overflow-x:auto;">
+      <svg viewBox="0 0 ${CHART_W} ${CHART_H}" style="width:100%;max-width:${CHART_W}px;height:auto;display:block;" xmlns="http://www.w3.org/2000/svg">
+        ${svgRows}
+      </svg></div>`;
+    }
+  }
+
+  buildChart();
+  renderTable();
+  updateSortIndicators();
+})();
 
 const PAGE_SIZE = 50;
 let dtFiltered = ENRICHED.slice();
@@ -1102,7 +1266,23 @@ function initDataTable() {
 // ---- PIVOT TABLE ----
 function initPivot() {
   const container = document.getElementById('pivot-container');
-  
+  const statusEl = document.getElementById('pivot-status');
+
+  // Mobile detection — PivotTable.js drag-and-drop does not function on touch devices
+  const isMobile = window.matchMedia('(max-width: 768px)').matches || ('ontouchstart' in window && window.innerWidth < 900);
+  if (isMobile) {
+    if (statusEl) statusEl.innerHTML = 'Pivot table is desktop-only. Touch/drag interaction is not supported on mobile. Use the Revenue by Industry summary above.';
+    return;
+  }
+
+  // Check if jQuery loaded
+  if (typeof $ === 'undefined' || typeof $.pivotUI === 'undefined') {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#f87171">PivotTable.js did not load (CDN failure or ad blocker). Use the Revenue by Industry summary above.</span>';
+    return;
+  }
+
+  if (statusEl) statusEl.innerHTML = 'Building pivot...';
+
   // Build pivot data as flat records with full field names
   const pivotData = ENRICHED.map(r => ({
     'Client Name': r.n,
@@ -1114,15 +1294,9 @@ function initPivot() {
     'Source': r.src
   }));
 
-  // Check if PivotTable.js is loaded
-  if (typeof $.pivotUI === 'undefined') {
-    container.innerHTML = '<div style="font-size:12px;color:#f87171;padding:12px;">PivotTable.js failed to load. Check network connection.</div>';
-    return;
-  }
-
   // Apply dark theme styles inline
   container.style.cssText = 'padding:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; font-size:12px;';
-  
+
   try {
     $(container).pivotUI(pivotData, {
       rows: ['Industry'],
@@ -1133,6 +1307,8 @@ function initPivot() {
       unusedAttrsVertical: true,
       menuLimit: 500
     });
+    // Remove status message once pivot renders
+    if (statusEl) statusEl.style.display = 'none';
   } catch(e) {
     container.innerHTML = '<div style="font-size:12px;color:#f87171;padding:12px;">Pivot init error: ' + e.message + '</div>';
   }
