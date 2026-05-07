@@ -351,6 +351,30 @@ body {
 }
 .page-footer a { color: var(--primary-dark); text-decoration: none; }
 
+/* ---- CONFIDENCE PILLS ---- */
+.conf-pill {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+.conf-high  { background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; }
+.conf-med   { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
+.conf-low   { background: #FEE2E2; color: #B91C1C; border: 1px solid #FCA5A5; }
+.conf-blank { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); font-weight: 500; }
+
+/* ---- CONFIDENCE LEGEND ---- */
+.conf-legend {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  padding: 0 14px 10px;
+}
+.conf-legend strong { color: var(--ink); }
+
 /* ---- PENDING BADGE ---- */
 .badge-pending {
   display: inline-block;
@@ -509,7 +533,21 @@ body {
   </div>
   <div class="table-controls">
     <input id="dt-search" type="search" placeholder="Search client name, parent company, industry, NAICS&hellip;" />
+    <select id="dt-conf-filter">
+      <option value="">All Confidence levels</option>
+      <option value="High">High only</option>
+      <option value="Medium">Medium only</option>
+      <option value="Low">Low only</option>
+      <option value="Medium,Low">Medium + Low (needs review)</option>
+      <option value="blank">Blank (original 2024 NAICS)</option>
+    </select>
     <span id="dt-row-count"></span>
+  </div>
+  <div class="conf-legend">
+    <strong>Confidence flags:</strong> <span class="conf-pill conf-high">High</span> = explicit industry confirmed via website or directory &nbsp;&#183;&nbsp;
+    <span class="conf-pill conf-med">Medium</span> = inferred from name pattern, parent company, or geographic context &nbsp;&#183;&nbsp;
+    <span class="conf-pill conf-low">Low</span> = name signal alone, recommended manual review before pitching &nbsp;&#183;&nbsp;
+    <span class="conf-pill conf-blank">Blank</span> = original 2024 NAICS from Linked Accounting CRM (not AI-classified).
   </div>
   <div class="client-table-wrap">
     <table id="client-table">
@@ -518,6 +556,7 @@ body {
           <th data-col="n">Client Name <span class="sort-arrow" style="color:var(--primary);font-size:10px;"></span></th>
           <th data-col="p">Parent Company <span class="sort-arrow" style="color:var(--primary);font-size:10px;"></span></th>
           <th data-col="industry">Industry <span class="sort-arrow" style="color:var(--primary);font-size:10px;"></span></th>
+          <th data-col="conf">Confidence <span class="sort-arrow" style="color:var(--primary);font-size:10px;"></span></th>
           <th data-col="naics">NAICS <span class="sort-arrow" style="color:var(--primary);font-size:10px;"></span></th>
           <th data-col="rev" style="text-align:right;">Most Recent Revenue <span class="sort-arrow" style="color:var(--primary);font-size:10px;"></span></th>
         </tr>
@@ -732,7 +771,7 @@ const ENRICHED = ROWS.map(r => ({
 // ---- CSV DOWNLOAD ----
 function downloadCSV() {
   const BOM = '﻿';
-  const headers = ['Client Name', 'Parent Company', 'NAICS Code', 'Industry', 'Most Recent Revenue'];
+  const headers = ['Client Name', 'Parent Company', 'NAICS Code', 'Industry', 'Confidence', 'Most Recent Revenue'];
 
   function escField(val) {
     if (val === null || val === undefined) return '';
@@ -752,6 +791,7 @@ function downloadCSV() {
       escField(r.p),
       escField(r.naics),
       escField(r.industry),
+      escField(r.conf || ''),
       rev
     ];
     lines.push(row.join(','));
@@ -904,21 +944,37 @@ function fmtRev(v) {
 
 function applyDtFilters() {
   const q = document.getElementById('dt-search').value.toLowerCase();
+  const confSel = document.getElementById('dt-conf-filter').value;
+  const confVals = confSel === '' ? null : confSel === 'blank' ? [''] : confSel.split(',');
   dtFiltered = ENRICHED.filter(r => {
-    if (!q) return true;
-    const hay = (r.n + ' ' + (r.p || '') + ' ' + r.industry + ' ' + r.naics).toLowerCase();
-    return hay.includes(q);
+    if (q) {
+      const hay = (r.n + ' ' + (r.p || '') + ' ' + r.industry + ' ' + (r.naics || '')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (confVals) {
+      const rc = r.conf || '';
+      if (!confVals.includes(rc)) return false;
+    }
+    return true;
   });
   if (dtSortCol) applyDtSort();
   dtPage = 0;
   renderDtTable();
 }
 
+// Confidence sort order: Low first (most urgent), then Medium, High, blank
+const CONF_ORDER = {'Low': 0, 'Medium': 1, 'High': 2, '': 3};
+
 function applyDtSort() {
   const col = dtSortCol;
   dtFiltered.sort((a, b) => {
-    let va = col === 'industry' ? a.industry : a[col];
-    let vb = col === 'industry' ? b.industry : b[col];
+    let va, vb;
+    if (col === 'industry') { va = a.industry; vb = b.industry; }
+    else if (col === 'conf') {
+      const ao = CONF_ORDER[a.conf || ''] !== undefined ? CONF_ORDER[a.conf || ''] : 3;
+      const bo = CONF_ORDER[b.conf || ''] !== undefined ? CONF_ORDER[b.conf || ''] : 3;
+      return (ao - bo) * dtSortDir;
+    } else { va = a[col]; vb = b[col]; }
     if (va === null || va === undefined) va = col === 'rev' ? -Infinity : '';
     if (vb === null || vb === undefined) vb = col === 'rev' ? -Infinity : '';
     if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dtSortDir;
@@ -954,10 +1010,17 @@ function renderDtTable() {
       : `<span style="color:var(--muted);">\u2014</span>`;
     const revCell = `<span style="color:${r.rev ? 'var(--green)' : 'var(--muted)'}; font-weight:${r.rev ? '600' : '400'};">${fmtRev(r.rev)}</span>`;
     const parentCell = r.p ? `<span style="color:var(--ink-secondary);">${escHtml(r.p)}</span>` : `<span style="color:var(--muted);">\u2014</span>`;
+    const confVal = r.conf || '';
+    let confCell;
+    if (confVal === 'High')        confCell = '<span class="conf-pill conf-high">High</span>';
+    else if (confVal === 'Medium') confCell = '<span class="conf-pill conf-med">Medium</span>';
+    else if (confVal === 'Low')    confCell = '<span class="conf-pill conf-low">Low</span>';
+    else                           confCell = '<span class="conf-pill conf-blank">\u2014</span>';
     return `<tr style="${bg}">
       <td style="padding:7px 12px; border-bottom:1px solid var(--border-light); color:var(--ink); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escAttr(r.n)}">${escHtml(r.n)}</td>
       <td style="padding:7px 12px; border-bottom:1px solid var(--border-light); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escAttr(r.p || '')}">${parentCell}</td>
       <td style="padding:7px 12px; border-bottom:1px solid var(--border-light); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${industryCell}</td>
+      <td style="padding:7px 12px; border-bottom:1px solid var(--border-light); white-space:nowrap;">${confCell}</td>
       <td style="padding:7px 12px; border-bottom:1px solid var(--border-light); white-space:nowrap;">${naicsCell}</td>
       <td style="padding:7px 12px; border-bottom:1px solid var(--border-light); text-align:right; white-space:nowrap;">${revCell}</td>
     </tr>`;
@@ -979,12 +1042,13 @@ window.dtNav = function(dir) {
 function initClientTable() {
   dtFiltered = ENRICHED.slice();
   document.getElementById('dt-search').addEventListener('input', applyDtFilters);
+  document.getElementById('dt-conf-filter').addEventListener('change', applyDtFilters);
   document.querySelectorAll('#dt-header-row th').forEach(th => {
     th.addEventListener('click', function() {
       const col = this.dataset.col;
       if (!col) return;
       if (dtSortCol === col) { dtSortDir *= -1; }
-      else { dtSortCol = col; dtSortDir = col === 'n' || col === 'p' || col === 'industry' ? 1 : -1; }
+      else { dtSortCol = col; dtSortDir = col === 'n' || col === 'p' || col === 'industry' || col === 'conf' ? 1 : -1; }
       applyDtSort();
       dtPage = 0;
       renderDtTable();
@@ -1012,6 +1076,7 @@ function initPivot() {
     'Parent Company': r.p || '\u2014',
     'Industry': r.industry,
     'NAICS Code': r.naics || 'Pending',
+    'Confidence': r.conf || 'Blank',
     'Revenue': r.rev || 0,
   }));
   container.style.cssText = 'padding:4px 0; overflow-x:auto; -webkit-overflow-scrolling:touch;';
