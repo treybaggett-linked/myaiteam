@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>NAICS Classification Run — Preview</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222636;
+    --border: #2e3248;
+    --text: #e2e4ef;
+    --muted: #8b90a8;
+    --accent: #7b8cde;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --teal: #2dd4bf;
+    --purple: #a78bfa;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    padding: 0 0 48px;
+  }
+
+  /* ---- header ---- */
+  .page-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 16px 16px;
+  }
+  .page-header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .page-header .meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ---- section ---- */
+  .section {
+    margin: 0 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .section:first-of-type { margin-top: 16px; }
+
+  .section-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-header h2 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .section-header .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .section-body {
+    padding: 14px 16px;
+  }
+
+  /* ---- big stat grid ---- */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 14px 12px;
+  }
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .stat-card.full { grid-column: 1 / -1; }
+  .stat-card .num {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+  }
+  .stat-card .num.accent { color: var(--accent); }
+  .stat-card .num.green  { color: var(--green); }
+  .stat-card .num.amber  { color: var(--amber); }
+  .stat-card .label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 5px;
+    line-height: 1.35;
+  }
+
+  /* ---- bar chart ---- */
+  .bar-list { padding: 12px 16px; }
+  .bar-item { margin-bottom: 14px; }
+  .bar-item:last-child { margin-bottom: 0; }
+  .bar-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 5px;
+  }
+  .bar-label {
+    font-size: 13px;
+    color: var(--text);
+    flex: 1;
+    padding-right: 8px;
+    line-height: 1.3;
+  }
+  .bar-label .naics-code {
+    font-size: 10px;
+    color: var(--muted);
+    display: block;
+  }
+  .bar-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .bar-pct {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+  .bar-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+  .bar-fill.c1 { background: var(--purple); }
+  .bar-fill.c2 { background: var(--teal); }
+  .bar-fill.c3 { background: var(--accent); }
+  .bar-fill.c4 { background: var(--amber); }
+  .bar-fill.c5 { background: var(--green); }
+  .bar-fill.c6 { background: #fb923c; }
+  .bar-fill.muted { background: var(--muted); }
+
+  /* ---- confidence section ---- */
+  .conf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 14px 12px;
+  }
+  .conf-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 10px;
+  }
+  .conf-card .conf-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .conf-card .conf-num {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .conf-card .conf-pct {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .conf-card .conf-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot.green  { background: var(--green); }
+  .dot.amber  { background: var(--amber); }
+  .dot.red    { background: var(--red); }
+  .dot.muted  { background: var(--muted); }
+
+  /* ---- merge section ---- */
+  .merge-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 14px 12px 0;
+  }
+  .merge-stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .merge-stat .num {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .merge-stat .label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.35;
+  }
+
+  .unmatched-breakdown {
+    margin: 14px 16px 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .unmatched-breakdown .ub-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .ub-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  .ub-row:last-child { border-bottom: none; }
+  .ub-row .ub-label {
+    font-size: 13px;
+    color: var(--text);
+    flex: 1;
+    line-height: 1.35;
+  }
+  .ub-row .ub-label .ub-sub {
+    font-size: 11px;
+    color: var(--muted);
+    display: block;
+    margin-top: 2px;
+  }
+  .ub-row .ub-num {
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .ub-row .ub-num.green { color: var(--green); }
+  .ub-row .ub-num.muted { color: var(--muted); }
+
+  /* ---- action items ---- */
+  .action-list {
+    padding: 12px 16px;
+  }
+  .action-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .action-item:last-child { border-bottom: none; }
+  .action-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 13px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .action-content .action-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .action-content .action-detail {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.45;
+  }
+  .action-content .action-detail code {
+    font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+    font-size: 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: var(--amber);
+  }
+
+  /* ---- callout ---- */
+  .callout {
+    margin: 0 16px 14px;
+    background: #1c2038;
+    border: 1px solid #3a4070;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .callout strong { color: var(--accent); }
+
+  /* ---- note ---- */
+  .note {
+    margin: 10px 16px 0;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    padding-bottom: 4px;
+  }
+  .note strong { color: var(--text); }
+
+  /* ---- inline SVG donut ---- */
+  .donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+  }
+  .donut-legend {
+    flex: 1;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .legend-item:last-child { margin-bottom: 0; }
+  .legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .legend-pct {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  /* ---- divider ---- */
+  hr.inner {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0 16px;
+  }
+
+  @media (max-width: 360px) {
+    .stat-grid { grid-template-columns: 1fr; }
+    .stat-card.full { grid-column: 1; }
+    .conf-grid { grid-template-columns: 1fr; }
+    .merge-stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>NAICS Classification Run</h1>
+  <div class="meta">Linked Accounting — 2026-05-04 &nbsp;|&nbsp; Personal preview</div>
+</div>
+
+<!-- ========== 1. HEADLINE COVERAGE ========== -->
+<div class="section">
+  <div class="section-header">
+    <h2>Coverage</h2>
+    <div class="subtitle">Business entities with blank NAICS at start of run</div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card full">
+      <div class="num">2,068</div>
+      <div class="label">Total blank-NAICS business entity rows in scope</div>
+    </div>
+    <div class="stat-card">
+      <div class="num green">1,548</div>
+      <div class="label">AI-classified<br>(74.9% of scope)</div>
+    </div>
+    <div class="stat-card">
+      <div class="num amber">520</div>
+      <div class="label">Manual review needed<br>(no email / generic domain)</div>
+    </div>
+  </div>
+  <div class="note" style="padding: 0 16px 14px;">
+    AI batch breakdown: 525 auto-classified as 524130 via 831b.com pattern + 33 hidden captives via name pattern + 990 web-lookup classified across Batches A2–D.
+  </div>
+</div>
+
+<!-- ========== 2. INDUSTRY CONCENTRATION ========== -->
+<div class="section">
+  <div class="section-header">
+    <h2>Industry Concentration</h2>
+    <div class="subtitle">Answer to Brandon's "where are our specialties?" question</div>
+  </div>
+
+  <div class="callout" style="margin-top:14px;">
+    This is <strong>not a generalist CPA book.</strong> Four sectors dominate: captive insurance, real estate holdings, construction trades, and senior care. That is the story for Brandon.
+  </div>
+
+  <div class="bar-list">
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Captive Reinsurance (831b)
+          <span class="naics-code">524130</span>
+        </div>
+        <span class="bar-count">568</span>
+        <span class="bar-pct">27.5%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c1" style="width:100%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Real Estate — Residential Holdings
+          <span class="naics-code">531110</span>
+        </div>
+        <span class="bar-count">210</span>
+        <span class="bar-pct">10.2%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c2" style="width:37%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Real Estate — Commercial Holdings
+          <span class="naics-code">531120</span>
+        </div>
+        <span class="bar-count">118</span>
+        <span class="bar-pct">5.7%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c2" style="width:21%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Plumbing / HVAC Contractors
+          <span class="naics-code">238220</span>
+        </div>
+        <span class="bar-count">35</span>
+        <span class="bar-pct">1.7%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c3" style="width:6%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Holding Companies (unclassified)
+          <span class="naics-code">551112</span>
+        </div>
+        <span class="bar-count">34</span>
+        <span class="bar-pct">1.6%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill muted" style="width:6%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Assisted Living Facilities
+          <span class="naics-code">623312</span>
+        </div>
+        <span class="bar-count">27</span>
+        <span class="bar-pct">1.3%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c4" style="width:5%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Commercial Building Construction
+          <span class="naics-code">236220</span>
+        </div>
+        <span class="bar-count">23</span>
+        <span class="bar-pct">1.1%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c3" style="width:4%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Offices of Lawyers
+          <span class="naics-code">541110</span>
+        </div>
+        <span class="bar-count">22</span>
+        <span class="bar-pct">1.1%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c5" style="width:4%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Roofing Contractors
+          <span class="naics-code">238160</span>
+        </div>
+        <span class="bar-count">20</span>
+        <span class="bar-pct">1.0%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c3" style="width:3.5%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Electrical Contractors
+          <span class="naics-code">238210</span>
+        </div>
+        <span class="bar-count">20</span>
+        <span class="bar-pct">1.0%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c3" style="width:3.5%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Self-Storage / Miniwarehouse
+          <span class="naics-code">531130</span>
+        </div>
+        <span class="bar-count">18</span>
+        <span class="bar-pct">0.9%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c2" style="width:3%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Nursing Care Facilities (SNF)
+          <span class="naics-code">623110</span>
+        </div>
+        <span class="bar-count">17</span>
+        <span class="bar-pct">0.8%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c4" style="width:3%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Marketing Consulting
+          <span class="naics-code">541613</span>
+        </div>
+        <span class="bar-count">15</span>
+        <span class="bar-pct">0.7%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c5" style="width:2.6%"></div></div>
+    </div>
+
+    <div class="bar-item">
+      <div class="bar-meta">
+        <div class="bar-label">
+          Child Day Care Services
+          <span class="naics-code">624410</span>
+        </div>
+        <span class="bar-count">14</span>
+        <span class="bar-pct">0.7%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill c6" style="width:2.5%"></div></div>
+    </div>
+
+  </div>
+
+  <hr class="inner">
+
+  <div class="note" style="padding: 12px 16px 14px;">
+    <strong>Sector roll-ups:</strong> Captive insurance 27.5% &nbsp;|&nbsp; Real estate all types ~20% (531xxx) &nbsp;|&nbsp; Construction trades ~7.3% (236–238xxx) &nbsp;|&nbsp; Senior care ~3.8% (623xxx). These four sectors account for roughly 58% of all rows in scope. Bars above are scaled relative to 524130 as the max.
+  </div>
+</div>
+
+<!-- ========== 3. CONFIDENCE DISTRIBUTION ========== -->
+<div class="section">
+  <div class="section-header">
+    <h2>Confidence Distribution</h2>
+    <div class="subtitle">AI-classified rows only — 1,548 total</div>
+  </div>
+
+  <div class="conf-grid">
+    <div class="conf-card">
+      <div class="conf-label"><span class="dot green"></span>High</div>
+      <div class="conf-num" style="color:var(--green)">871</div>
+      <div class="conf-pct">56.3% of AI rows</div>
+      <div class="conf-note">525 of these are the 831b auto-batch — zero web lookup needed.</div>
+    </div>
+    <div class="conf-card">
+      <div class="conf-label"><span class="dot amber"></span>Medium</div>
+      <div class="conf-num" style="color:var(--amber)">188</div>
+      <div class="conf-pct">12.1% of AI rows</div>
+      <div class="conf-note">Mostly captives classified by name pattern, not 831b domain.</div>
+    </div>
+    <div class="conf-card">
+      <div class="conf-label"><span class="dot red"></span>Low</div>
+      <div class="conf-num" style="color:var(--red)">489</div>
+      <div class="conf-pct">31.6% of AI rows</div>
+      <div class="conf-note">Website mismatch, unreachable site, or opaque holding LLC.</div>
+    </div>
+    <div class="conf-card">
+      <div class="conf-label"><span class="dot muted"></span>Insuff.</div>
+      <div class="conf-num" style="color:var(--muted)">35</div>
+      <div class="conf-pct">2.3% of AI rows</div>
+      <div class="conf-note">AI gave up. Both website and name signal failed.</div>
+    </div>
+  </div>
+
+  <div class="note" style="padding: 4px 16px 14px;">
+    <strong>Honest read:</strong> Strip out the 525 auto-classified captives and the web-lookup High rate is 346/1,023 = 34%. The 31.6% Low bucket is real — shared email domains and generic-name LLCs are hard to classify without direct client contact.
+  </div>
+</div>
+
+<!-- ========== 4. BRANDON EXCEL MERGE ========== -->
+<div class="section">
+  <div class="section-header">
+    <h2>Brandon Excel Merge</h2>
+    <div class="subtitle">Clients and NAICS Revenue (Tax Year 2024) — 2,303 rows</div>
+  </div>
+
+  <div class="merge-stats">
+    <div class="merge-stat">
+      <div class="num" style="color:var(--green)">64.8%</div>
+      <div class="label">Match rate<br>(1,492 of 2,303)</div>
+    </div>
+    <div class="merge-stat">
+      <div class="num" style="color:var(--amber)">2</div>
+      <div class="label">Duplicate CRM IDs<br>flagged in output</div>
+    </div>
+  </div>
+
+  <div class="unmatched-breakdown">
+    <div class="ub-title">809 Unmatched — breakdown</div>
+    <div class="ub-row">
+      <div class="ub-label">
+        Already had NAICS
+        <span class="ub-sub">Excluded from AI run by design — correct behavior</span>
+      </div>
+      <div class="ub-num green">619</div>
+    </div>
+    <div class="ub-row">
+      <div class="ub-label">
+        Still fully unclassified
+        <span class="ub-sub">Trusts, estates, non-operating entities pre-filtered out</span>
+      </div>
+      <div class="ub-num muted">190</div>
+    </div>
+  </div>
+
+  <div class="note" style="padding: 10px 16px 14px;">
+    The 64.8% rate is <strong>clean by design.</strong> The 619 already-had-NAICS rows were intentionally excluded. The 190 truly unclassified are entity types (trusts, non-profits, pension plans) that don't cleanly map to NAICS — a separate pass or leave-as-is decision for Trey/Brandon.
+  </div>
+  <div class="note" style="padding: 0 16px 14px;">
+    <strong>Sheet1 aggregate:</strong> Not updated in this merge. It still reflects pre-AI data only. Do not send to Brandon until the aggregate is rebuilt — it's the first thing he'll look at.
+  </div>
+</div>
+
+<!-- ========== 5. ACTION ITEMS ========== -->
+<div class="section">
+  <div class="section-header">
+    <h2>Before This Goes to Brandon</h2>
+    <div class="subtitle">Three things to handle first</div>
+  </div>
+
+  <div class="action-list">
+
+    <div class="action-item">
+      <div class="action-num">1</div>
+      <div class="action-content">
+        <div class="action-title">Rebuild Sheet1 aggregate</div>
+        <div class="action-detail">
+          Sheet1 currently understates coverage — it is based on Brandon's original NAICS columns only and does not include the 1,492 new AI classifications. Choose Domo rebuild (preferred — upload updated Excel as new dataset, build fresh industry summary card) or Excel pivot rebuild (create a merged-NAICS column, rebuild pivot). Either way, do not send before this is done.
+        </div>
+      </div>
+    </div>
+
+    <div class="action-item">
+      <div class="action-num">2</div>
+      <div class="action-content">
+        <div class="action-title">Resolve LOWE LAW GROUP LLC conflict</div>
+        <div class="action-detail">
+          Brandon's code: <code>551112</code> (Holding Company). AI suggested: <code>531110</code> (Real Estate). AI flagged holding-company structure + website mismatch. Brandon's original was NOT overwritten — conflict is in <code>AI_Flags</code> only. 30-second check: if it's a pure holding structure, 551112 is correct. If it has real estate activity, AI may be right. Confirm before sending.
+        </div>
+      </div>
+    </div>
+
+    <div class="action-item">
+      <div class="action-num">3</div>
+      <div class="action-content">
+        <div class="action-title">Spot-check 2 duplicate CRM ID rows</div>
+        <div class="action-detail">
+          <code>250199</code> — HIGHLAND REAL ESTATE PARTNERS LLC<br>
+          <code>250095</code> — RD ACCOUNTING LLC<br>
+          Both received AI data (MASTER had one record each, lookup resolved), but the duplicate flag means confirm which entity each row represents in Lacerte before Brandon sees them.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========== DATA QUALITY SIDEBAR ========== -->
+<div class="section">
+  <div class="section-header">
+    <h2>Data Quality Flags Surfaced</h2>
+    <div class="subtitle">Lacerte problems, not AI failures — for engagement team</div>
+  </div>
+  <div class="section-body" style="padding: 14px 16px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:4px;">~375 rows — Website-domain mismatch</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.45;">Email domain on Lacerte record belongs to a different business than the entity listed. Common cause: accountant copied owner's primary company email to multiple related entities. Not fixable by AI — engagement team audit needed for high-value holding clients.</div>
+      </div>
+
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:4px;">Email domain typos confirmed</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.45;"><code style="font-family:monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;color:var(--amber)">outloook.com</code> (entity 16225, AXIS MACHINE) and <code style="font-family:monospace;font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:1px 5px;color:var(--amber)">linkedaccountin.com</code> (entity 22055, PERRY OPPORTUNITIES LLC). Run regex check on all email domains before next enrichment pass.</div>
+      </div>
+
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:4px;">Domain swap — IDs 20070 / 20071</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.45;">KMICRO TECH INC and NET MEDIA GROUP have each other's email domains in Lacerte. Classification done on name signal. Correct in Lacerte so future runs work.</div>
+      </div>
+
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;">2 test/placeholder records in active client list</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.45;">TEST CLIENT BUSINESS (20081) and TEST CLIENT DEMO BUSINESS (21191) — both on contour.dev. Not real clients. Exclude from NAICS scope and future exports.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
